@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "196608764806",
+    "project_id": "soil-app-msu-job",
+    "storage_bucket": "soil-app-msu-job.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:196608764806:android:3a7846c28747962caada07",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDEMw3rtmf0prYtUT9C1Fsnyan9FQXkIF0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

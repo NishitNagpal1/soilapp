@@ -1,0 +1,522 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_application_1/sensor_data_screen.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:provider/provider.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+StreamController<List<int>> moistureStreamController = StreamController();
+StreamController<List<int>> resistanceStreamController = StreamController();
+
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => BluetoothStateProvider()),
+      ],
+      child: MyApp(),
+    ),
+  );
+}
+
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late Stream<String> _dateTimeStream;
+  String _selectedSoilType = 'silty loam';
+  FlutterBluePlus flutterBluePlus = FlutterBluePlus();
+  BluetoothDevice? connectedDevice;
+  bool isScanning = false;
+  DatabaseHelper databaseHelper = DatabaseHelper();
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  int? latestMoistureValue;
+  int? latestResistanceValue;
+  String? latestDateTime;
+  StreamController<int?> moistureStreamController = StreamController<int?>();
+  StreamController<int?> resistanceStreamController = StreamController<int?>();
+
+  // Database helper instance
+
+  @override
+  void initState() {
+    super.initState();
+    _dateTimeStream = Stream.periodic(Duration(seconds: 1), (count) {
+      final now = DateTime.now();
+      final formattedDate = DateFormat('yyyy-MM-dd HH:mm:ss').format(now);
+      return 'Date: $formattedDate';
+    });
+  }
+
+  // Start scanning for the "JPLSoil" device
+  void _startScanning(BuildContext context) {
+    final bluetoothStateProvider = Provider.of<BluetoothStateProvider>(
+      context,
+      listen: false,
+    );
+    bluetoothStateProvider.startScanning();
+
+    // Set the scan status
+    setState(() {
+      isScanning = true;
+    });
+
+    FlutterBluePlus.scanResults.listen(
+      (results) {
+        for (ScanResult r in results) {
+          if (r.device.platformName == "JPLSoil") {
+            // Connect to the "JPLSoil" device
+            _connectToDevice(r.device);
+            break; // Stop scanning when the target device is found
+          }
+        }
+      },
+      onError: (error) {
+        print('Scan error: $error');
+      },
+    );
+  }
+
+  void _connectToDevice(BluetoothDevice device) {
+    if (connectedDevice == device) {
+      return;
+    }
+
+    device.connect().then((_) {
+      // Device is connected
+      setState(() {
+        connectedDevice = device;
+        isScanning = false;
+      });
+
+      device.discoverServices().then((services) {
+        services.forEach((service) async {
+          var characteristics = service.characteristics;
+          for (BluetoothCharacteristic c in characteristics) {
+            if (c.properties.read) {
+              List<int> value = await c.read();
+              if (c.uuid.toString() == '00002a00-0000-1000-8000-00805f9b34fb') {
+                setState(() {
+                  latestMoistureValue = value[0];
+                  latestResistanceValue =
+                      0; // Replace with the actual resistance value
+                  latestDateTime =
+                      DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+                });
+                moistureStreamController.add(latestMoistureValue as int?);
+              } else if (c.uuid.toString() ==
+                  '00002a04-0000-1000-8000-00805f9b34fb') {
+                // Update resistance value if needed
+                latestResistanceValue = value[0];
+              }
+              resistanceStreamController.add(latestResistanceValue as int?);
+            }
+          }
+        });
+      });
+
+      device.connectionState.listen((event) {
+        if (event == BluetoothConnectionState.disconnected) {
+          setState(() {
+            connectedDevice = null;
+          });
+
+          // Reconnect after a delay (e.g., 5 seconds)
+          Future.delayed(Duration(seconds: 5), () {
+            _connectToDevice(device);
+          });
+        }
+      });
+    }).catchError((error) {
+      // The device could not be connected
+      print('Connection error: $error');
+      setState(() {
+        connectedDevice = null;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey,
+      home: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.blue,
+          title: Text('Data Collection'),
+        ),
+        body: GestureDetector(
+          onHorizontalDragEnd: (details) {
+            if (details.velocity.pixelsPerSecond.dx > 0) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SecondPage(),
+                ),
+              );
+            }
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 20),
+              Text(
+                'Sensor Readings:',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.left,
+              ),
+              Text(
+                'Resistance Moisture Sensor',
+                style: TextStyle(
+                  fontSize: 20,
+                ),
+                textAlign: TextAlign.left,
+              ),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  StreamBuilder<int?>(
+                    stream: moistureStreamController.stream,
+                    builder: (context, snapshot) {
+                      final moistureValue = snapshot.data;
+                      return DataTile(
+                        title: 'Moisture: ${moistureValue ?? 'N/A'}',
+                        backgroundColor: Colors.green,
+                      );
+                    },
+                  ),
+                  StreamBuilder<int?>(
+                    stream: resistanceStreamController.stream,
+                    builder: (context, snapshot) {
+                      final resistanceValue = snapshot.data;
+                      return DataTile(
+                        title: 'Resistance: ${resistanceValue ?? 'N/A'}',
+                        backgroundColor: Colors.red,
+                      );
+                    },
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  DataTile(
+                    title: 'Temperature',
+                    backgroundColor: Colors.blue,
+                  ),
+                  StreamBuilder<String>(
+                    stream: _dateTimeStream,
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        return DataTile(
+                            title: snapshot.data!,
+                            backgroundColor: Colors.purple);
+                      } else {
+                        return DataTile(
+                            title: 'Loading...',
+                            backgroundColor: Colors.purple);
+                      }
+                    },
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Soil Type:',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.left,
+              ),
+              DropdownButton<String>(
+                value: _selectedSoilType,
+                onChanged: (newValue) {
+                  setState(() {
+                    _selectedSoilType = newValue!;
+                  });
+                },
+                items: <String>[
+                  'silty loam',
+                  'sandy',
+                ].map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  // Start scanning for the "JPLSoil" device
+                  _startScanning(context);
+                },
+                child: Text(isScanning ? 'Scanning...' : 'Scan for JPLSoil'),
+              ),
+              if (connectedDevice != null)
+                Text('Connected to: ${connectedDevice!.platformName}'),
+              Container(
+                width: double
+                    .infinity, // Makes the button span the width of the screen
+                decoration: BoxDecoration(
+                  borderRadius:
+                      BorderRadius.circular(30), // Apply rounded corners
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (latestMoistureValue != null &&
+                        latestResistanceValue != null &&
+                        latestDateTime != null) {
+                      final sensorData = SensorData(
+                        moisture: latestMoistureValue!,
+                        resistance: latestResistanceValue!,
+                        dateTime: latestDateTime!,
+                      );
+                      databaseHelper.insertSensorData(sensorData);
+                      // Reset the instance variables
+                      setState(() {
+                        latestMoistureValue = null;
+                        latestResistanceValue = null;
+                        latestDateTime = null;
+                      });
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0, // Removes the button's elevation
+                  ),
+                  child: Text('Save Data'),
+                ),
+              ),
+              Container(
+                width: double
+                    .infinity, // Makes the button span the width of the screen
+                decoration: BoxDecoration(
+                  borderRadius:
+                      BorderRadius.circular(30), // Apply rounded corners
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    navigatorKey.currentState?.push(
+                      MaterialPageRoute(
+                          builder: (context) => SensorDataScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0, // Removes the button's elevation
+                  ),
+                  child: Text('View Saved Sensor Data'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class DataTile extends StatelessWidget {
+  final String title;
+  final Color backgroundColor;
+
+  DataTile({required this.title, required this.backgroundColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 150,
+      height: 150,
+      decoration: BoxDecoration(
+        border: Border.all(color: backgroundColor, width: 2),
+        borderRadius: BorderRadius.circular(15),
+        color: backgroundColor,
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.only(left: 8, top: 8),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SecondPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.blue,
+        title: Text('Second Page'),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 20),
+          Text(
+            'Sensor Readings:',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.left,
+          ),
+          Text(
+            'Resistance Moisture Sensor',
+            style: TextStyle(
+              fontSize: 20,
+            ),
+            textAlign: TextAlign.left,
+          ),
+          SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              DataTile(
+                title: 'R. Humidity',
+                backgroundColor: Colors.green,
+              ),
+              DataTile(
+                title: 'Air Temp',
+                backgroundColor: Colors.orange,
+              ),
+            ],
+          ),
+          SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              DataTile(
+                title: 'Solar Radiation',
+                backgroundColor: Colors.teal,
+              ),
+              DataTile(
+                title: 'ET',
+                backgroundColor: Colors.cyan,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class BluetoothStateProvider with ChangeNotifier {
+  BluetoothAdapterState _bluetoothState = BluetoothAdapterState.unknown;
+
+  BluetoothAdapterState get bluetoothState => _bluetoothState;
+
+  void startScanning() {
+    // Start scanning for the "JPLSoil" device
+    FlutterBluePlus.startScan(timeout: Duration(seconds: 30));
+  }
+
+  void setBluetoothState(BluetoothAdapterState state) {
+    _bluetoothState = state;
+    notifyListeners();
+  }
+}
+
+class DatabaseHelper {
+  static final DatabaseHelper _instance = DatabaseHelper.internal();
+  factory DatabaseHelper() => _instance;
+  static Database? _db;
+
+  DatabaseHelper.internal();
+
+  Future<Database?> get db async {
+    if (_db != null) {
+      return _db;
+    }
+    _db = await initDb();
+    return _db;
+  }
+
+  Future<Database> initDb() async {
+    String databasesPath = await getDatabasesPath();
+    String path = join(databasesPath, 'sensor_data.db');
+
+    return await openDatabase(path, version: 1,
+        onCreate: (Database db, int version) async {
+      // Create tables here
+      await db.execute('''
+        CREATE TABLE SensorData (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          moisture INTEGER,
+          resistance INTEGER,
+          dateTime TEXT
+        )
+      ''');
+    });
+  }
+
+  // Insert data into the database
+  Future<int> insertSensorData(SensorData sensorData) async {
+    Database? dbClient = await db;
+    return await dbClient!.insert('SensorData', sensorData.toMap());
+  }
+
+  // Retrieve all sensor data from the database
+  Future<List<SensorData>> getSensorDataList() async {
+    Database? dbClient = await db;
+    List<Map<String, dynamic>> maps =
+        await dbClient!.query('SensorData', orderBy: 'dateTime DESC');
+    List<SensorData> sensorDataList = [];
+
+    for (Map<String, dynamic> map in maps) {
+      sensorDataList.add(SensorData.fromMap(map));
+    }
+
+    return sensorDataList;
+  }
+}
+
+class SensorData {
+  int? id;
+  int moisture;
+  int resistance;
+  String dateTime;
+
+  SensorData({
+    this.id,
+    required this.moisture,
+    required this.resistance,
+    required this.dateTime,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'moisture': moisture,
+      'resistance': resistance,
+      'dateTime': dateTime,
+    };
+  }
+
+  factory SensorData.fromMap(Map<String, dynamic> map) {
+    return SensorData(
+      id: map['id'],
+      moisture: map['moisture'],
+      resistance: map['resistance'],
+      dateTime: map['dateTime'],
+    );
+  }
+}

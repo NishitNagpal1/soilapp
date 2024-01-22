@@ -1,0 +1,143 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:provider/provider.dart';
+
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => BluetoothStateProvider()),
+      ],
+      child: MyApp(),
+    ),
+  );
+}
+
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  FlutterBluePlus flutterBluePlus = FlutterBluePlus();
+  BluetoothDevice? connectedDevice;
+  bool isScanning = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.blue,
+          title: const Text('Bluetooth Device Info'),
+        ),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                // Start scanning for the "JPLSoil" device
+                _startScanning();
+              },
+              child: Text(isScanning ? 'Scanning...' : 'Scan for JPLSoil'),
+            ),
+            if (connectedDevice != null)
+              Text('Connected to: ${connectedDevice!.platformName}'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _connectToDevice(BluetoothDevice device) {
+    if (connectedDevice == device) {
+      return;
+    }
+
+    device.connect().then((_) {
+      // Device is connected
+      setState(() {
+        connectedDevice = device;
+        isScanning = false;
+      });
+
+      device.discoverServices().then((services) {
+        services.forEach((service) {
+          print('Service: ${service.uuid.toString()}');
+
+          service.characteristics.forEach((characteristic) {
+            print('Characteristic: ${characteristic.uuid.toString()}');
+
+            // Read the data from the characteristic
+            characteristic.read().then((value) {
+              print('Data: $value');
+            });
+
+            // Listen for real-time updates
+            characteristic.value.listen((value) {
+              print('Real-time Update: $value');
+            });
+          });
+        });
+      });
+
+      device.connectionState.listen((event) {
+        if (event == BluetoothConnectionState.disconnected) {
+          setState(() {
+            connectedDevice = null;
+          });
+
+          Future.delayed(const Duration(seconds: 5), () {
+            _connectToDevice(device);
+          });
+        }
+      });
+    }).catchError((error) {
+      print('Connection error: $error');
+      setState(() {
+        connectedDevice = null;
+      });
+    });
+  }
+
+  void _startScanning() {
+    final bluetoothStateProvider =
+        Provider.of<BluetoothStateProvider>(context, listen: false);
+    bluetoothStateProvider.startScanning();
+
+    setState(() {
+      isScanning = true;
+    });
+
+    FlutterBluePlus.scanResults.listen(
+      (results) {
+        for (ScanResult r in results) {
+          if (r.device.platformName == "JPLSoil") {
+            _connectToDevice(r.device);
+            break;
+          }
+        }
+      },
+      onError: (error) {
+        print('Scan error: $error');
+      },
+    );
+  }
+}
+
+class BluetoothStateProvider with ChangeNotifier {
+  BluetoothAdapterState _bluetoothState = BluetoothAdapterState.unknown;
+
+  BluetoothAdapterState get bluetoothState => _bluetoothState;
+
+  void startScanning() {
+    FlutterBluePlus.startScan(timeout: const Duration(seconds: 30));
+  }
+
+  void setBluetoothState(BluetoothAdapterState state) {
+    _bluetoothState = state;
+    notifyListeners();
+  }
+}
