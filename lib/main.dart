@@ -340,7 +340,7 @@ class _MyAppState extends State<MyApp> {
         resizeToAvoidBottomInset: true,
         key: _scaffoldKey,
         appBar: AppBar(
-          backgroundColor: Colors.deepPurple,
+          backgroundColor: Colors.blue,
           title: Text('Data Collection'),
         ),
         body: GestureDetector(
@@ -398,7 +398,7 @@ class _MyAppState extends State<MyApp> {
                       final resistanceValue = snapshot.data;
                       return DataTile(
                         title: 'Voltage: ${resistanceValue ?? 'N/A'}',
-                        backgroundColor: Colors.red,
+                        backgroundColor: Colors.orange,
                       );
                     },
                   ),
@@ -410,7 +410,7 @@ class _MyAppState extends State<MyApp> {
                 children: [
                   DataTile(
                     title: 'Temperature',
-                    backgroundColor: Colors.blue,
+                    backgroundColor: Colors.teal,
                   ),
                   StreamBuilder<String>(
                     stream: _dateTimeStream,
@@ -418,11 +418,10 @@ class _MyAppState extends State<MyApp> {
                       if (snapshot.hasData) {
                         return DataTile(
                             title: snapshot.data!,
-                            backgroundColor: Colors.purple);
+                            backgroundColor: Colors.cyan);
                       } else {
                         return DataTile(
-                            title: 'Loading...',
-                            backgroundColor: Colors.purple);
+                            title: 'Loading...', backgroundColor: Colors.cyan);
                       }
                     },
                   ),
@@ -461,100 +460,132 @@ class _MyAppState extends State<MyApp> {
                     child: Text('Add Custom Soil Type'),
                   )),
               ),
-              SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: () {
-                  // Start scanning for the "JPLSoil" device
-                  _startScanning(context);
-                },
-                child: Text(isScanning ? 'Scanning...' : 'READ'),
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Colors.yellow,
-                ),
-              ),
-              if (connectedDevice != null) Text('Connected to Device'),
-              Container(
-                width: MediaQuery.of(context).size.width *
-                    0.5, // Makes the button span the width of the screen
-                decoration: BoxDecoration(
-                  borderRadius:
-                      BorderRadius.circular(30), // Apply rounded corners
-                ),
-                child: ElevatedButton(
-                  onPressed: () {
-                    final sensorDataEntry = SensorData(
-                      moisture:
-                          this.latestMoistureValue, // Default to 0.0 if null
-                      resistance:
-                          this.latestResistanceValue, // Default to 0.0 if null
-                      dateTime: latestDateTime ??
-                          DateFormat('yyyy-MM-dd HH:mm:ss')
-                              .format(DateTime.now()), // Current time if null
-                      soilType:
-                          _selectedSoilType, // Default to "Unknown" if null
-                      latitude:
-                          currentLatitude ?? 0.0, // Default to 0.0 if null
-                      longitude:
-                          currentLongitude ?? 0.0, // Default to 0.0 if null
-                    );
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Container(
+                    width: 150,
+                    height: 110,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Start scanning for the "JPLSoil" device
+                        _startScanning(context);
+                      },
+                      child: Text(connectedDevice != null
+                          ? 'Connected to Device'
+                          : 'READ'),
+                      style: ElevatedButton.styleFrom(
+                        shape: CircleBorder(),
+                        padding: EdgeInsets.all(40),
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.grey,
+                        elevation: 5,
+                      ),
+                    ),
+                  ),
+                  Container(
+                      width: 150,
+                      height: 110,
+                      decoration: BoxDecoration(
+                        borderRadius:
+                            BorderRadius.circular(10), // Apply rounded corners
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final sensorDataEntry = SensorData(
+                            moisture: this
+                                .latestMoistureValue, // Default to 0.0 if null
+                            resistance: this
+                                .latestResistanceValue, // Default to 0.0 if null
+                            dateTime: latestDateTime ??
+                                DateFormat('yyyy-MM-dd HH:mm:ss').format(
+                                    DateTime.now()), // Current time if null
+                            soilType:
+                                _selectedSoilType, // Default to "Unknown" if null
+                            latitude: currentLatitude ??
+                                0.0, // Default to 0.0 if null
+                            longitude: currentLongitude ??
+                                0.0, // Default to 0.0 if null
+                          );
 
-                    databaseHelper.insertSensorData(sensorDataEntry).then((_) {
-                      print('Data saved successfully'); // Debugging statement
-                    }).catchError((error) {
-                      print('Error saving data: $error'); // Error handling
-                    });
+                          databaseHelper
+                              .insertSensorData(sensorDataEntry)
+                              .then((_) {
+                            print(
+                                'Data saved successfully'); // Debugging statement
+                          }).catchError((error) {
+                            print(
+                                'Error saving data: $error'); // Error handling
+                          });
 
-                    // Reset the instance variables
-                    setState(() {
-                      latestMoistureValue = null;
-                      latestResistanceValue = null;
-                      latestDateTime = null;
-                    });
-                  },
-                  child: Text('Save Data'),
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.brown,
-                  ),
-                ),
+                          // Reset the instance variables
+                          setState(() {
+                            latestMoistureValue = null;
+                            latestResistanceValue = null;
+                            latestDateTime = null;
+                          });
+                        },
+                        child: Text('Save Data'),
+                        style: ElevatedButton.styleFrom(
+                            shape: CircleBorder(),
+                            padding: EdgeInsets.all(40),
+                            foregroundColor: Colors.white,
+                            backgroundColor:
+                                const Color.fromARGB(255, 154, 97, 76),
+                            elevation: 5),
+                      )),
+                ],
               ),
-              Container(
-                width: MediaQuery.of(context).size.width *
-                    0.5, // Makes the button span the width of the screen
-                decoration: BoxDecoration(
-                  borderRadius:
-                      BorderRadius.circular(30), // Apply rounded corners
-                ),
-                child: ElevatedButton(
-                  onPressed: () {
-                    navigatorKey.currentState?.push(
-                      MaterialPageRoute(
-                          builder: (context) => SensorDataScreen()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.cyan,
-                    elevation: 0,
+              SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Container(
+                    width: 150,
+                    height:
+                        110, // Makes the button span the width of the screen
+                    decoration: BoxDecoration(
+                      borderRadius:
+                          BorderRadius.circular(30), // Apply rounded corners
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        navigatorKey.currentState?.push(
+                          MaterialPageRoute(
+                              builder: (context) => SensorDataScreen()),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        shape: CircleBorder(),
+                        padding: EdgeInsets.all(40),
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.red.shade300,
+                        elevation: 5,
+                      ),
+                      child: Text('View Saved Sensor Data'),
+                    ),
                   ),
-                  child: Text('View Saved Sensor Data'),
-                ),
-              ),
-              // New Button for Exporting and Sharing CSV
-              Container(
-                width: 200,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: ElevatedButton(
-                  onPressed: _exportAndShareCsv,
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.green, elevation: 0, // Text color
+                  // New Button for Exporting and Sharing CSV
+                  Container(
+                    width: 150,
+                    height: 110,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: ElevatedButton(
+                      onPressed: _exportAndShareCsv,
+                      style: ElevatedButton.styleFrom(
+                        shape: CircleBorder(),
+                        padding: EdgeInsets.all(40),
+                        foregroundColor: Colors.white,
+                        backgroundColor: Color.fromARGB(255, 158, 235, 69),
+                        elevation: 5, // Text color
+                      ),
+                      child: Text('Export and Share CSV'),
+                    ),
                   ),
-                  child: Text('Export and Share CSV'),
-                ),
+                ],
               ),
             ],
           ),
@@ -574,7 +605,7 @@ class DataTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 150,
-      height: 150,
+      height: 130,
       decoration: BoxDecoration(
         border: Border.all(color: backgroundColor, width: 2),
         borderRadius: BorderRadius.circular(15),
