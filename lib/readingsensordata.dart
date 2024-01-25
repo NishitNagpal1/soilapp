@@ -49,8 +49,9 @@ class ParsedSensorData {
   static ParsedSensorData fromDeviceData(String d) {
     // Splitting the string by the colon and space
     var parts = d.split(':');
-    if (parts.length < 2)
+    if (parts.length < 2) {
       return ParsedSensorData(DataType.UNSPECIFIED, double.nan);
+    }
 
     String dataType = parts[0].trim();
     String sValue = parts[1].trim();

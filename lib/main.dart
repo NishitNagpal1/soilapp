@@ -21,7 +21,7 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (context) => BluetoothStateProvider()),
       ],
-      child: MyApp(),
+      child: const MyApp(),
     ),
   );
 }
@@ -64,6 +64,8 @@ class LocationService {
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
   @override
   _MyAppState createState() => _MyAppState();
 }
@@ -116,7 +118,7 @@ class _MyAppState extends State<MyApp> {
         currentLongitude = locationData.longitude;
       });
     });
-    _dateTimeStream = Stream.periodic(Duration(seconds: 1), (count) {
+    _dateTimeStream = Stream.periodic(const Duration(seconds: 1), (count) {
       final now = DateTime.now();
       final formattedDate = DateFormat('yyyy-MM-dd HH:mm:ss').format(now);
       return 'Date: $formattedDate';
@@ -146,7 +148,7 @@ class _MyAppState extends State<MyApp> {
           dialogContext, // Assuming context is available within the widget tree
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Add New Soil Type'),
+          title: const Text('Add New Soil Type'),
           content: SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(
@@ -159,19 +161,22 @@ class _MyAppState extends State<MyApp> {
                 children: <Widget>[
                   TextField(
                     onChanged: (value) => newSoilTypeName = value,
-                    decoration: InputDecoration(labelText: 'Soil Type Name'),
+                    decoration:
+                        const InputDecoration(labelText: 'Soil Type Name'),
                   ),
                   TextField(
                     onChanged: (value) => newConstantA = value,
-                    decoration: InputDecoration(labelText: 'Constant A (m)'),
+                    decoration:
+                        const InputDecoration(labelText: 'Constant A (m)'),
                     keyboardType:
-                        TextInputType.numberWithOptions(decimal: true),
+                        const TextInputType.numberWithOptions(decimal: true),
                   ),
                   TextField(
                     onChanged: (value) => newConstantB = value,
-                    decoration: InputDecoration(labelText: 'Constant B (c)'),
+                    decoration:
+                        const InputDecoration(labelText: 'Constant B (c)'),
                     keyboardType:
-                        TextInputType.numberWithOptions(decimal: true),
+                        const TextInputType.numberWithOptions(decimal: true),
                   ),
                 ],
               ),
@@ -179,17 +184,17 @@ class _MyAppState extends State<MyApp> {
           ),
           actions: <Widget>[
             TextButton(
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
               onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
-              child: Text('Save'),
+              child: const Text('Save'),
               onPressed: () {
                 if (newSoilTypeName.isEmpty ||
                     newConstantA.isEmpty ||
                     newConstantB.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Complete all fields")),
+                    const SnackBar(content: Text("Complete all fields")),
                   );
                 } else {
                   // Ensure setState calls are within a StatefulWidget:
@@ -256,14 +261,13 @@ class _MyAppState extends State<MyApp> {
       double adjustedResistance = sensorData.value;
 
       setState(() {
-        this.latestMoistureValue =
+        latestMoistureValue =
             adjustedMoisture.abs(); // Update instance variable
-        this.latestResistanceValue =
-            adjustedResistance; // Update instance variable
+        latestResistanceValue = adjustedResistance; // Update instance variable
       });
 
-      moistureStreamController.add(this.latestMoistureValue);
-      resistanceStreamController.add(this.latestResistanceValue);
+      moistureStreamController.add(latestMoistureValue);
+      resistanceStreamController.add(latestResistanceValue);
     }
   }
 
@@ -317,7 +321,7 @@ class _MyAppState extends State<MyApp> {
             connectedDevice = null;
           });
           // Attempt to reconnect after a delay
-          Future.delayed(Duration(seconds: 5), () {
+          Future.delayed(const Duration(seconds: 5), () {
             _connectToDevice(device);
           });
         }
@@ -341,7 +345,7 @@ class _MyAppState extends State<MyApp> {
         key: _scaffoldKey,
         appBar: AppBar(
           backgroundColor: Colors.blue,
-          title: Text('Data Collection'),
+          title: const Text('Data Collection'),
         ),
         body: GestureDetector(
           onHorizontalDragUpdate: (details) {
@@ -350,7 +354,7 @@ class _MyAppState extends State<MyApp> {
               // Right swipe
               print("Right swipe");
               navigatorKey.currentState!.push(
-                MaterialPageRoute(builder: (context) => SecondPage()),
+                MaterialPageRoute(builder: (context) => const SecondPage()),
               );
               // Add right swipe handling logic here
             } else if (details.delta.dx < 0) {
@@ -361,8 +365,8 @@ class _MyAppState extends State<MyApp> {
           },
           child: ListView(
             children: [
-              SizedBox(height: 20),
-              Text(
+              const SizedBox(height: 20),
+              const Text(
                 'Sensor Readings:',
                 style: TextStyle(
                   fontSize: 24,
@@ -370,14 +374,14 @@ class _MyAppState extends State<MyApp> {
                 ),
                 textAlign: TextAlign.left,
               ),
-              Text(
+              const Text(
                 'Soil Moisture and Temperature Sensor',
                 style: TextStyle(
                   fontSize: 20,
                 ),
                 textAlign: TextAlign.left,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -404,11 +408,11 @@ class _MyAppState extends State<MyApp> {
                   ),
                 ],
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  DataTile(
+                  const DataTile(
                     title: 'Temperature',
                     backgroundColor: Colors.teal,
                   ),
@@ -420,15 +424,15 @@ class _MyAppState extends State<MyApp> {
                             title: snapshot.data!,
                             backgroundColor: Colors.cyan);
                       } else {
-                        return DataTile(
+                        return const DataTile(
                             title: 'Loading...', backgroundColor: Colors.cyan);
                       }
                     },
                   ),
                 ],
               ),
-              SizedBox(height: 20),
-              Text(
+              const SizedBox(height: 20),
+              const Text(
                 'Soil Type:',
                 style: TextStyle(
                   fontSize: 24,
@@ -455,16 +459,16 @@ class _MyAppState extends State<MyApp> {
                     child: Text(value),
                   );
                 }).toList()
-                  ..add(DropdownMenuItem(
+                  ..add(const DropdownMenuItem(
                     value: 'Add Custom Soil Type',
                     child: Text('Add Custom Soil Type'),
                   )),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Container(
+                  SizedBox(
                     width: 150,
                     height: 110,
                     child: ElevatedButton(
@@ -472,16 +476,16 @@ class _MyAppState extends State<MyApp> {
                         // Start scanning for the "JPLSoil" device
                         _startScanning(context);
                       },
-                      child: Text(connectedDevice != null
-                          ? 'Connected to Device'
-                          : 'READ'),
                       style: ElevatedButton.styleFrom(
-                        shape: CircleBorder(),
-                        padding: EdgeInsets.all(40),
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(40),
                         foregroundColor: Colors.white,
                         backgroundColor: Colors.grey,
                         elevation: 5,
                       ),
+                      child: Text(connectedDevice != null
+                          ? 'Connected to Device'
+                          : 'READ'),
                     ),
                   ),
                   Container(
@@ -494,10 +498,10 @@ class _MyAppState extends State<MyApp> {
                       child: ElevatedButton(
                         onPressed: () {
                           final sensorDataEntry = SensorData(
-                            moisture: this
-                                .latestMoistureValue, // Default to 0.0 if null
-                            resistance: this
-                                .latestResistanceValue, // Default to 0.0 if null
+                            moisture:
+                                latestMoistureValue, // Default to 0.0 if null
+                            resistance:
+                                latestResistanceValue, // Default to 0.0 if null
                             dateTime: latestDateTime ??
                                 DateFormat('yyyy-MM-dd HH:mm:ss').format(
                                     DateTime.now()), // Current time if null
@@ -526,18 +530,18 @@ class _MyAppState extends State<MyApp> {
                             latestDateTime = null;
                           });
                         },
-                        child: Text('Save Data'),
                         style: ElevatedButton.styleFrom(
-                            shape: CircleBorder(),
-                            padding: EdgeInsets.all(40),
+                            shape: const CircleBorder(),
+                            padding: const EdgeInsets.all(40),
                             foregroundColor: Colors.white,
                             backgroundColor:
                                 const Color.fromARGB(255, 154, 97, 76),
                             elevation: 5),
+                        child: const Text('Save Data'),
                       )),
                 ],
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -553,17 +557,17 @@ class _MyAppState extends State<MyApp> {
                       onPressed: () {
                         navigatorKey.currentState?.push(
                           MaterialPageRoute(
-                              builder: (context) => SensorDataScreen()),
+                              builder: (context) => const SensorDataScreen()),
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        shape: CircleBorder(),
-                        padding: EdgeInsets.all(40),
+                        shape: const CircleBorder(),
+                        // padding: const EdgeInsets.all(40),
                         foregroundColor: Colors.white,
                         backgroundColor: Colors.red.shade300,
                         elevation: 5,
                       ),
-                      child: Text('View Saved Sensor Data'),
+                      child: const Text('View Saved Sensor Data'),
                     ),
                   ),
                   // New Button for Exporting and Sharing CSV
@@ -576,13 +580,14 @@ class _MyAppState extends State<MyApp> {
                     child: ElevatedButton(
                       onPressed: _exportAndShareCsv,
                       style: ElevatedButton.styleFrom(
-                        shape: CircleBorder(),
-                        padding: EdgeInsets.all(40),
+                        shape: const CircleBorder(),
+                        // padding: const EdgeInsets.all(40),
                         foregroundColor: Colors.white,
-                        backgroundColor: Color.fromARGB(255, 158, 235, 69),
+                        backgroundColor:
+                            const Color.fromARGB(255, 158, 235, 69),
                         elevation: 5, // Text color
                       ),
-                      child: Text('Export and Share CSV'),
+                      child: const Text('Export and Share CSV'),
                     ),
                   ),
                 ],
@@ -599,7 +604,8 @@ class DataTile extends StatelessWidget {
   final String title;
   final Color backgroundColor;
 
-  DataTile({required this.title, required this.backgroundColor});
+  const DataTile(
+      {super.key, required this.title, required this.backgroundColor});
 
   @override
   Widget build(BuildContext context) {
@@ -616,7 +622,7 @@ class DataTile extends StatelessWidget {
           padding: const EdgeInsets.only(left: 8, top: 8),
           child: Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -629,6 +635,8 @@ class DataTile extends StatelessWidget {
 }
 
 class SecondPage extends StatelessWidget {
+  const SecondPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -642,9 +650,9 @@ class SecondPage extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.blue,
-          title: Text('Second Page'),
+          title: const Text('Second Page'),
         ),
-        body: SafeArea(
+        body: const SafeArea(
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -715,7 +723,7 @@ class BluetoothStateProvider with ChangeNotifier {
 
   void startScanning() {
     // Start scanning for the "JPLSoil" device
-    FlutterBluePlus.startScan(timeout: Duration(seconds: 30));
+    FlutterBluePlus.startScan(timeout: const Duration(seconds: 30));
   }
 
   void setBluetoothState(BluetoothAdapterState state) {

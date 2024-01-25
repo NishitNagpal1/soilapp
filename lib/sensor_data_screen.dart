@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/main.dart'; // Ensure this import points to your main.dart or wherever DatabaseHelper is located
 
 class SensorDataScreen extends StatefulWidget {
+  const SensorDataScreen({super.key});
+
   @override
-  _SensorDataScreenState createState() => _SensorDataScreenState();
+  State<SensorDataScreen> createState() => _SensorDataScreenState();
 }
 
 class _SensorDataScreenState extends State<SensorDataScreen> {
@@ -20,17 +22,17 @@ class _SensorDataScreenState extends State<SensorDataScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Saved Sensor Data'),
+        title: const Text('Saved Sensor Data'),
       ),
       body: FutureBuilder<List<SensorData>>(
         future: sensorDataList,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No sensor data available.'));
+            return const Center(child: Text('No sensor data available.'));
           } else {
             return ListView.builder(
               itemCount: snapshot.data!.length,

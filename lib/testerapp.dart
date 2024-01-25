@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -13,12 +15,14 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: BluetoothDevicesScreen(),
+      home: const BluetoothDevicesScreen(),
     );
   }
 }
 
 class BluetoothDevicesScreen extends StatefulWidget {
+  const BluetoothDevicesScreen({super.key});
+
   @override
   _BluetoothDevicesScreenState createState() => _BluetoothDevicesScreenState();
 }
@@ -38,7 +42,7 @@ class _BluetoothDevicesScreenState extends State<BluetoothDevicesScreen> {
     setState(() {
       isScanning = true;
     });
-    FlutterBluePlus.startScan(timeout: Duration(seconds: 10));
+    FlutterBluePlus.startScan(timeout: const Duration(seconds: 10));
 
     // Listen for scan results
     FlutterBluePlus.scanResults.listen((results) {
@@ -64,16 +68,16 @@ class _BluetoothDevicesScreenState extends State<BluetoothDevicesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Scanning for JPLSoil'),
+        title: const Text('Scanning for JPLSoil'),
       ),
       body: Center(
         child: isScanning
-            ? CircularProgressIndicator()
-            : Text('Scan Complete. Click to rescan.'),
+            ? const CircularProgressIndicator()
+            : const Text('Scan Complete. Click to rescan.'),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => startScan(),
-        child: Icon(Icons.refresh),
+        child: const Icon(Icons.refresh),
       ),
     );
   }
@@ -82,7 +86,7 @@ class _BluetoothDevicesScreenState extends State<BluetoothDevicesScreen> {
 class DeviceServicesScreen extends StatefulWidget {
   final BluetoothDevice device;
 
-  DeviceServicesScreen({required this.device});
+  const DeviceServicesScreen({super.key, required this.device});
 
   @override
   _DeviceServicesScreenState createState() => _DeviceServicesScreenState();
